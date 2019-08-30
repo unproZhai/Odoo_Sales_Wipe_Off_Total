@@ -56,13 +56,13 @@ class SaleOrder(models.Model):
     discount_rate = fields.Float('Discount Rate', digits=dp.get_precision('Account'),
                                  readonly=True, states={'draft': [('readonly', False)], 'sent': [('readonly', False)]})
 
-    @api.onchange('discount_type', 'discount_rate', 'order_line')
+    @api.onchange('discount_rate')
     def supply_rate(self):
-        for order in self:
-            total = 0.0
-            for line in order.order_line:
-                total += round((line.product_uom_qty * line.price_unit))
-            order.amount_total = total - order.discount_rate
+        for order in self: 
+            order.amount_total = order.amount_untaxed + order.amount_tax - order.discount_rate
+        order.update({
+            'amount_total': order.pricelist_id.currency_id.round(amount_total)
+        })
 
     @api.multi
     def _prepare_invoice(self,):
